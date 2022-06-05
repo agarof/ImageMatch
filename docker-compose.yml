@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  db:
+    image: 'postgres:latest'
+    ports:
+      - '6300:5432'
+    environment:
+      POSTGRES_USER: postgre
+      POSTGRES_PASSWORD: postgre
+      POSTGRES_DB: db
+    volumes:
+        - ./db/schema.sql://docker-entrypoint-initdb.d/schema.sql
+        - db-data:/var/lib/postgresql/data
+
+volumes:
+    db-data:

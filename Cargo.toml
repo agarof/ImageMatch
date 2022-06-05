@@ -1,0 +1,6 @@
+[workspace]
+members = ["db"]
+
+[profile.release-lto]
+inherits = "release"
+lto = true
