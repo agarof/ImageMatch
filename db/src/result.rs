@@ -1,6 +1,8 @@
 #[derive(Debug)]
 pub enum Error {
     InvalidToken,
+    InvalidUserId,
+    DuplicateEmail,
     Sqlx(sqlx::Error),
 }
 

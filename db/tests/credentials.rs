@@ -42,10 +42,7 @@ mod auth {
         let uuid = Uuid::from_u128(9231856239808572938);
         let error = credentials::auth(uuid, &mut trans).await.unwrap_err();
 
-        match error {
-            Error::InvalidToken => (),
-            _ => panic!(),
-        }
+        assert!(matches!(error, Error::InvalidToken))
     }
 }
 

@@ -36,21 +36,34 @@ where
         .fetch_one(db)
         .await
         .map(|(id,)| Id(id))
-        .map_err(Error::Sqlx)
+        .map_err(|e| {
+            if e.as_database_error()
+                .and_then(|e| e.code())
+                .map(|code| code == "23505")
+                .unwrap_or(false)
+            {
+                Error::DuplicateEmail
+            } else {
+                Error::Sqlx(e)
+            }
+        })
 }
 
-pub async fn confirm<'a, E>(Id(id): Id, db: E) -> DbResult<()>
+pub async fn confirm<'a, E>(id: Id, db: E) -> DbResult<()>
 where
     E: PgExecutor<'a>,
 {
     const QUERY: &str = "update users set confirm_limit=null where id=$1";
 
     sqlx::query(QUERY)
-        .bind(id)
+        .bind(id.0)
         .execute(db)
         .await
-        .map(|_| ())
         .map_err(Error::Sqlx)
+        .and_then(|result| match result.rows_affected() {
+            0 => Err(Error::InvalidUserId),
+            1.. => Ok(()),
+        })
 }
 
 pub async fn list_candidates<'a, E>(pool: E) -> DbResult<Vec<Candidate>>
