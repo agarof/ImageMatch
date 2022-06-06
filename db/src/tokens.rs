@@ -9,7 +9,7 @@ pub async fn create<'a, E>(id: users::Id, db: E) -> DbResult<Uuid>
 where
     E: PgExecutor<'a>,
 {
-    const QUERY: &str = "insert into credentials(user_id)values($1)returning token";
+    const QUERY: &str = "insert into tokens(user_id)values($1)returning token";
 
     sqlx::query_as(QUERY)
         .bind(id.0)
@@ -24,7 +24,7 @@ where
     E: PgExecutor<'a>,
 {
     const QUERY: &str =
-        "select user_id from credentials where token=$1 and expiration > CURRENT_TIMESTAMP";
+        "select user_id from tokens where token=$1 and expiration > CURRENT_TIMESTAMP";
 
     sqlx::query_as(QUERY)
         .bind(uuid)
@@ -41,7 +41,7 @@ pub async fn delete<'a, E>(uuid: Uuid, db: E) -> DbResult<()>
 where
     E: PgExecutor<'a>,
 {
-    const QUERY: &str = "delete from credentials where token=$1";
+    const QUERY: &str = "delete from tokens where token=$1";
 
     sqlx::query(QUERY)
         .bind(uuid)
@@ -55,7 +55,7 @@ pub async fn logout_user<'a, E>(id: users::Id, db: E) -> DbResult<()>
 where
     E: PgExecutor<'a>,
 {
-    const QUERY: &str = "delete from credentials where user_id=$1";
+    const QUERY: &str = "delete from tokens where user_id=$1";
 
     sqlx::query(QUERY)
         .bind(id.0)

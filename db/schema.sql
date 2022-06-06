@@ -1,6 +1,6 @@
 create extension if not exists pgcrypto;
 
-drop table if exists users,credentials,sessions,registrations,images,images_associations,results,choices;
+drop table if exists users,tokens,sessions,registrations,images,images_associations,results,choices;
 
 create table if not exists users
 (
@@ -11,7 +11,7 @@ create table if not exists users
     confirm_limit timestamp default CURRENT_TIMESTAMP + make_interval(days => 3)
 );
 
-create table if not exists credentials
+create table if not exists tokens
 (
     token uuid primary key default gen_random_uuid(),
     expiration timestamp not null default CURRENT_TIMESTAMP + make_interval(days => 7),
