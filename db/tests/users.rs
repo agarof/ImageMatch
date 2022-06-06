@@ -96,7 +96,7 @@ mod list_candidates {
                 .find(|&(email, _)| email == user.email)
                 .expect("Did not find user in list");
 
-            assert_eq!(user.password, password);
+            assert_ne!(user.password, password);
         }
     }
 }

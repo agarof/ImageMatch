@@ -28,7 +28,8 @@ pub async fn create<'a, E>(email: &str, password: &str, db: E) -> DbResult<Id>
 where
     E: PgExecutor<'a>,
 {
-    const QUERY: &str = "insert into users(email,password)values($1,$2)returning id";
+    const QUERY: &str =
+        "insert into users(email,password)values($1,crypt($2, gen_salt('bf')))returning id";
 
     sqlx::query_as(QUERY)
         .bind(email)
