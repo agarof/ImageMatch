@@ -12,17 +12,15 @@ pub struct Id(pub i32);
 pub struct Candidate {
     pub id: Id,
     pub email: String,
-    pub password: String,
 }
 
-const LIST_CANDIDATES_QUERY: &str = "select id,email,password from users";
+const LIST_CANDIDATES_QUERY: &str = "select id,email from users where confirm_limit is not null";
 
 impl<'r> sqlx::FromRow<'r, PgRow> for Candidate {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
             id: Id(row.try_get(0)?),
             email: row.try_get(1)?,
-            password: row.try_get(2)?,
         })
     }
 }

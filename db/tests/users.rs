@@ -91,12 +91,10 @@ mod list_candidates {
         assert_eq!(list.len(), USERS.len());
 
         for user in list {
-            let (_, password) = USERS
+            USERS
                 .into_iter()
                 .find(|&(email, _)| email == user.email)
                 .expect("Did not find user in list");
-
-            assert_ne!(user.password, password);
         }
     }
 }
