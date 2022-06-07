@@ -1,4 +1,5 @@
 mod controllers;
+mod extractors;
 mod response;
 mod routes;
 
