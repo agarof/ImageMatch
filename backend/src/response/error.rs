@@ -11,6 +11,7 @@ pub type Body = String;
 
 #[derive(Clone, Copy)]
 pub enum Code {
+    Forbidden,
     NotFound,
     Conflict,
     Internal,
@@ -70,6 +71,7 @@ impl From<Error> for EmptyResponse {
 impl Code {
     fn as_str(self) -> &'static str {
         match self {
+            Code::Forbidden => "Forbidden",
             Code::NotFound => "Not Found",
             Code::Conflict => "Conflict",
             Code::Internal => "Internal Server Error",
@@ -80,6 +82,7 @@ impl Code {
 impl From<Code> for StatusCode {
     fn from(code: Code) -> Self {
         match code {
+            Code::Forbidden => StatusCode::FORBIDDEN,
             Code::NotFound => StatusCode::NOT_FOUND,
             Code::Conflict => StatusCode::CONFLICT,
             Code::Internal => StatusCode::INTERNAL_SERVER_ERROR,
