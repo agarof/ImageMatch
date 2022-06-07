@@ -33,8 +33,8 @@ mod create {
 
         users::create(email1, pass1, &mut trans).await.unwrap();
         assert!(matches!(
-            users::create(email1, pass2, &mut trans).await,
-            Err(Error::DuplicateEmail)
+            users::create(email1, pass2, &mut trans).await.unwrap_err(),
+            Error::DuplicateEmail
         ));
     }
 }
@@ -65,8 +65,8 @@ mod confirm {
         let mut trans = db.begin().await.unwrap();
 
         assert!(matches!(
-            users::confirm(Id(598023940), &mut trans).await,
-            Err(Error::InvalidUserId)
+            users::confirm(Id(598023940), &mut trans).await.unwrap_err(),
+            Error::InvalidUserId
         ));
     }
 }
@@ -98,5 +98,86 @@ mod list_candidates {
 
             assert_ne!(user.password, password);
         }
+    }
+}
+
+mod find_by_credentials {
+    use crate::common::{connect_db, data::*};
+
+    use db::{result::Error, users};
+    use sqlx::Acquire;
+
+    #[tokio::test]
+    async fn valid() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+
+        let expected = users::create(email, pass, &mut trans).await.unwrap();
+        users::confirm(expected, &mut trans).await.unwrap();
+        let id = users::find_by_credentials(email, pass, &mut trans)
+            .await
+            .unwrap();
+
+        assert_eq!(id, expected);
+    }
+
+    #[tokio::test]
+    async fn invalid_password() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+
+        let id = users::create(email, pass, &mut trans).await.unwrap();
+        users::confirm(id, &mut trans).await.unwrap();
+        let e = users::find_by_credentials(email, USERS[1].1, &mut trans)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(e, Error::InvalidCredentials))
+    }
+
+    #[tokio::test]
+    async fn invalid_email() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+
+        let id = users::create(email, pass, &mut trans).await.unwrap();
+        users::confirm(id, &mut trans).await.unwrap();
+        let e = users::find_by_credentials(USERS[1].0, pass, &mut trans)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(e, Error::InvalidCredentials));
+    }
+}
+
+mod set_admin {
+    use crate::common::{connect_db, data::*};
+
+    use db::{result::Error, users};
+    use sqlx::Acquire;
+
+    #[tokio::test]
+    async fn valid_id() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+
+        let id = users::create(email, pass, &mut trans).await.unwrap();
+        users::set_admin(id, true, &mut trans).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn invalid_id() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+
+        let error = users::set_admin(users::Id(94886529), true, &mut trans)
+            .await
+            .unwrap_err();
+
+        assert!(matches!(error, Error::InvalidUserId,));
     }
 }

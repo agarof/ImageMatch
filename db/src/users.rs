@@ -1,6 +1,9 @@
 use sqlx::{postgres::PgRow, PgExecutor, Row};
 
-use crate::result::{DbResult, Error};
+use crate::{
+    result::{DbResult, Error},
+    utils::at_least_one,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Id(pub i32);
@@ -61,18 +64,46 @@ where
         .execute(db)
         .await
         .map_err(Error::Sqlx)
-        .and_then(|result| match result.rows_affected() {
-            0 => Err(Error::InvalidUserId),
-            1.. => Ok(()),
-        })
+        .and_then(at_least_one(Error::InvalidUserId))
 }
 
-pub async fn list_candidates<'a, E>(pool: E) -> DbResult<Vec<Candidate>>
+pub async fn list_candidates<'a, E>(db: E) -> DbResult<Vec<Candidate>>
 where
     E: PgExecutor<'a>,
 {
     sqlx::query_as(LIST_CANDIDATES_QUERY)
-        .fetch_all(pool)
+        .fetch_all(db)
         .await
         .map_err(Error::Sqlx)
+}
+
+pub async fn find_by_credentials<'a, E>(email: &str, password: &str, db: E) -> DbResult<Id>
+where
+    E: PgExecutor<'a>,
+{
+    const QUERY: &str =
+        "select id from users where confirm_limit is null and email=$1 and password=crypt($2,password)";
+
+    sqlx::query_as(QUERY)
+        .bind(email)
+        .bind(password)
+        .fetch_optional(db)
+        .await
+        .map_err(Error::Sqlx)
+        .and_then(|opt| opt.map(|(id,)| Id(id)).ok_or(Error::InvalidCredentials))
+}
+
+pub async fn set_admin<'a, E>(id: Id, admin: bool, db: E) -> DbResult<()>
+where
+    E: PgExecutor<'a>,
+{
+    const QUERY: &str = "update users set admin=$1 where id=$2";
+
+    sqlx::query(QUERY)
+        .bind(admin)
+        .bind(id.0)
+        .execute(db)
+        .await
+        .map_err(Error::Sqlx)
+        .and_then(at_least_one(Error::InvalidUserId))
 }

@@ -2,6 +2,7 @@
 pub enum Error {
     InvalidToken,
     InvalidUserId,
+    InvalidCredentials,
     DuplicateEmail,
     Sqlx(sqlx::Error),
 }
