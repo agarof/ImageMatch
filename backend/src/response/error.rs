@@ -54,8 +54,14 @@ where
 
 impl From<Error> for EmptyResponse {
     fn from(error: Error) -> Self {
+        let message = Some(
+            error
+                .body
+                .unwrap_or_else(|| error.code.as_str().to_string()),
+        );
+
         Self {
-            error: error.body,
+            error: message,
             code: error.code.into(),
         }
     }
