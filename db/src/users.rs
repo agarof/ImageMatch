@@ -1,9 +1,6 @@
 use sqlx::{postgres::PgRow, PgExecutor, Row};
 
-use crate::{
-    result::{DbResult, Error},
-    utils::at_least_one,
-};
+use crate::result::{at_least_one, code_to_error, DbResult, Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Id(pub i32);
@@ -38,17 +35,7 @@ where
         .fetch_one(db)
         .await
         .map(|(id,)| Id(id))
-        .map_err(|e| {
-            if e.as_database_error()
-                .and_then(|e| e.code())
-                .map(|code| code == "23505")
-                .unwrap_or(false)
-            {
-                Error::DuplicateEmail
-            } else {
-                Error::Sqlx(e)
-            }
-        })
+        .map_err(code_to_error(&[("23505", |_| Error::DuplicateEmail)]))
 }
 
 pub async fn confirm<'a, E>(id: Id, db: E) -> DbResult<()>
