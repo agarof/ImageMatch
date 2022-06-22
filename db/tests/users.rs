@@ -113,11 +113,29 @@ mod find_by_credentials {
 
         let expected = users::create(email, pass, &mut trans).await.unwrap();
         users::confirm(expected, &mut trans).await.unwrap();
-        let id = users::find_by_credentials(email, pass, &mut trans)
+        let (id, admin) = users::find_by_credentials(email, pass, &mut trans)
             .await
             .unwrap();
 
         assert_eq!(id, expected);
+        assert!(!admin);
+    }
+
+    #[tokio::test]
+    async fn admin() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+
+        let expected = users::create(email, pass, &mut trans).await.unwrap();
+        users::confirm(expected, &mut trans).await.unwrap();
+        users::set_admin(expected, true, &mut trans).await.unwrap();
+        let (id, admin) = users::find_by_credentials(email, pass, &mut trans)
+            .await
+            .unwrap();
+
+        assert_eq!(id, expected);
+        assert!(admin);
     }
 
     #[tokio::test]

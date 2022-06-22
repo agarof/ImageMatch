@@ -33,7 +33,7 @@ mod auth {
         let mut trans = db.begin().await.unwrap();
         let (email, pass) = USERS[0];
         let id = users::create(email, pass, &mut trans).await.unwrap();
-        let token = tokens::create(id, &mut trans).await.unwrap();
+        let (token, _) = tokens::create(id, &mut trans).await.unwrap();
         let auth = tokens::auth(token, &mut trans).await.unwrap();
 
         assert_eq!(id, auth)
@@ -66,7 +66,7 @@ mod auth_admin {
         let mut trans = db.begin().await.unwrap();
         let (email, pass) = USERS[0];
         let id = users::create(email, pass, &mut trans).await.unwrap();
-        let token = tokens::create(id, &mut trans).await.unwrap();
+        let (token, _) = tokens::create(id, &mut trans).await.unwrap();
 
         users::set_admin(id, true, &mut trans).await.unwrap();
 
@@ -81,7 +81,7 @@ mod auth_admin {
         let mut trans = db.begin().await.unwrap();
         let (email, pass) = USERS[0];
         let id = users::create(email, pass, &mut trans).await.unwrap();
-        let token = tokens::create(id, &mut trans).await.unwrap();
+        let (token, _) = tokens::create(id, &mut trans).await.unwrap();
 
         let error = tokens::auth_admin(token, &mut trans).await.unwrap_err();
 
@@ -104,19 +104,36 @@ mod auth_admin {
 mod delete {
     use crate::common::{connect_db, data::USERS};
 
-    use db::{tokens, users};
+    use db::{result::Error, tokens, users};
     use sqlx::Acquire;
 
     #[tokio::test]
-    async fn single() {
+    async fn once() {
         let mut db = connect_db().await;
         let mut trans = db.begin().await.unwrap();
         let (email, pass) = USERS[0];
         let id = users::create(email, pass, &mut trans).await.unwrap();
-        let token = tokens::create(id, &mut trans).await.unwrap();
+        let (token, _) = tokens::create(id, &mut trans).await.unwrap();
 
         assert_eq!(tokens::auth(token, &mut trans).await.unwrap(), id);
         tokens::delete(token, &mut trans).await.unwrap();
+        tokens::auth(token, &mut trans).await.unwrap_err();
+    }
+
+    #[tokio::test]
+    async fn twice() {
+        let mut db = connect_db().await;
+        let mut trans = db.begin().await.unwrap();
+        let (email, pass) = USERS[0];
+        let id = users::create(email, pass, &mut trans).await.unwrap();
+        let (token, _) = tokens::create(id, &mut trans).await.unwrap();
+
+        assert_eq!(tokens::auth(token, &mut trans).await.unwrap(), id);
+        tokens::delete(token, &mut trans).await.unwrap();
+        assert!(matches!(
+            tokens::delete(token, &mut trans).await.unwrap_err(),
+            Error::InvalidToken
+        ));
         tokens::auth(token, &mut trans).await.unwrap_err();
     }
 }
@@ -133,14 +150,14 @@ mod logout_user {
         let mut trans = db.begin().await.unwrap();
         let (email, pass) = USERS[0];
         let id = users::create(email, pass, &mut trans).await.unwrap();
-        let uuid_1 = tokens::create(id, &mut trans).await.unwrap();
-        let uuid_2 = tokens::create(id, &mut trans).await.unwrap();
+        let (token_1, _) = tokens::create(id, &mut trans).await.unwrap();
+        let (token_2, _) = tokens::create(id, &mut trans).await.unwrap();
 
-        assert_eq!(tokens::auth(uuid_1, &mut trans).await.unwrap(), id);
-        assert_eq!(tokens::auth(uuid_2, &mut trans).await.unwrap(), id);
+        assert_eq!(tokens::auth(token_1, &mut trans).await.unwrap(), id);
+        assert_eq!(tokens::auth(token_2, &mut trans).await.unwrap(), id);
 
         tokens::logout_user(id, &mut trans).await.unwrap();
-        tokens::auth(uuid_1, &mut trans).await.unwrap_err();
-        tokens::auth(uuid_2, &mut trans).await.unwrap_err();
+        tokens::auth(token_1, &mut trans).await.unwrap_err();
+        tokens::auth(token_2, &mut trans).await.unwrap_err();
     }
 }

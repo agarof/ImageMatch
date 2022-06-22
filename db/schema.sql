@@ -8,13 +8,13 @@ create table if not exists users
     email text unique not null,
     password text not null,
     admin boolean not null default false,
-    confirm_limit timestamp default CURRENT_TIMESTAMP + make_interval(days => 3)
+    confirm_limit timestamptz default CURRENT_TIMESTAMP + make_interval(days => 3)
 );
 
 create table if not exists tokens
 (
     token uuid primary key default gen_random_uuid(),
-    expiration timestamp not null default CURRENT_TIMESTAMP + make_interval(days => 7),
+    expiration timestamptz not null default CURRENT_TIMESTAMP + make_interval(days => 7),
     user_id integer not null
         references users (id) on delete cascade
 );
@@ -30,7 +30,7 @@ create table if not exists sessions
 
 create table if not exists images
 (
-    id bigint primary key
+    id serial primary key
 );
 
 create table if not exists registrations
@@ -39,16 +39,18 @@ create table if not exists registrations
     user_id integer not null
         references users(id) on delete cascade,
     session_id integer not null
-        references sessions(id) on delete cascade
+        references sessions(id) on delete cascade,
+    unique (user_id, session_id)
 );
 
 create table if not exists images_associations
 (
     id serial primary key,
-    image_id bigint not null
+    image_id integer not null
         references images(id) on delete cascade,
     session_id integer not null
-        references sessions(id) on delete cascade
+        references sessions(id) on delete cascade,
+    unique (image_id, session_id)
 );
 
 create table if not exists choices
@@ -58,8 +60,9 @@ create table if not exists choices
         references users(id) on delete cascade,
     session_id integer not null
         references sessions(id) on delete cascade,
-    association_id integer not null
-        references images_associations(id) on delete cascade
+    image_id integer not null
+        references images(id) on delete cascade,
+    unique (user_id,session_id)
 );
 
 create table if not exists results
@@ -67,7 +70,7 @@ create table if not exists results
     id serial primary key,
     session_id integer not null
         references sessions(id) on delete cascade,
-    image_id bigint not null
+    image_id integer not null
         references images(id) on delete cascade,
     user_1_id integer not null
         references users(id) on delete cascade,

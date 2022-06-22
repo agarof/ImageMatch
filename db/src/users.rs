@@ -6,14 +6,14 @@ use crate::result::{at_least_one, code_to_error, DbResult, Error};
 pub struct Id(pub i32);
 
 #[derive(Debug)]
-pub struct Candidate {
+pub struct Summary {
     pub id: Id,
     pub email: String,
 }
 
 const LIST_CANDIDATES_QUERY: &str = "select id,email from users where confirm_limit is not null";
 
-impl<'r> sqlx::FromRow<'r, PgRow> for Candidate {
+impl<'r> sqlx::FromRow<'r, PgRow> for Summary {
     fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
             id: Id(row.try_get(0)?),
@@ -52,7 +52,7 @@ where
         .and_then(at_least_one(Error::InvalidUserId))
 }
 
-pub async fn list_candidates<'a, E>(db: E) -> DbResult<Vec<Candidate>>
+pub async fn list_candidates<'a, E>(db: E) -> DbResult<Vec<Summary>>
 where
     E: PgExecutor<'a>,
 {
@@ -62,12 +62,12 @@ where
         .map_err(Error::Sqlx)
 }
 
-pub async fn find_by_credentials<'a, E>(email: &str, password: &str, db: E) -> DbResult<Id>
+pub async fn find_by_credentials<'a, E>(email: &str, password: &str, db: E) -> DbResult<(Id, bool)>
 where
     E: PgExecutor<'a>,
 {
     const QUERY: &str =
-        "select id from users where confirm_limit is null and email=$1 and password=crypt($2,password)";
+        "select id,admin from users where confirm_limit is null and email=$1 and password=crypt($2,password)";
 
     sqlx::query_as(QUERY)
         .bind(email)
@@ -75,7 +75,10 @@ where
         .fetch_optional(db)
         .await
         .map_err(Error::Sqlx)
-        .and_then(|opt| opt.map(|(id,)| Id(id)).ok_or(Error::InvalidCredentials))
+        .and_then(|opt| {
+            opt.map(|(id, admin)| (Id(id), admin))
+                .ok_or(Error::InvalidCredentials)
+        })
 }
 
 pub async fn set_admin<'a, E>(id: Id, admin: bool, db: E) -> DbResult<()>

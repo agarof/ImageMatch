@@ -1,24 +1,27 @@
-use sqlx::{types::Uuid, PgExecutor};
+use sqlx::{
+    types::{time::OffsetDateTime, Uuid},
+    PgExecutor,
+};
 
 use crate::{
-    result::{DbResult, Error},
+    result::{at_least_one, DbResult, Error},
     users,
 };
 
 #[derive(Clone, Copy)]
 pub struct Token(pub Uuid);
 
-pub async fn create<'a, E>(id: users::Id, db: E) -> DbResult<Token>
+pub async fn create<'a, E>(id: users::Id, db: E) -> DbResult<(Token, OffsetDateTime)>
 where
     E: PgExecutor<'a>,
 {
-    const QUERY: &str = "insert into tokens(user_id)values($1)returning token";
+    const QUERY: &str = "insert into tokens(user_id)values($1)returning token,expiration";
 
     sqlx::query_as(QUERY)
         .bind(id.0)
         .fetch_one(db)
         .await
-        .map(|(uuid,)| Token(uuid))
+        .map(|(uuid, expiration)| (Token(uuid), expiration))
         .map_err(Error::Sqlx)
 }
 
@@ -68,8 +71,8 @@ where
         .bind(token.0)
         .execute(db)
         .await
-        .map(|_| ())
         .map_err(Error::Sqlx)
+        .and_then(at_least_one(Error::InvalidToken))
 }
 
 pub async fn logout_user<'a, E>(id: users::Id, db: E) -> DbResult<()>
