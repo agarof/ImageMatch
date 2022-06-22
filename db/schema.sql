@@ -23,8 +23,9 @@ create table if not exists sessions
 (
     id serial primary key,
     name text not null,
-    start timestamptz not null,
-    "end" timestamptz not null
+    phase1 timestamptz not null,
+    phase2 timestamptz not null check(phase1 < phase2),
+    phase3 timestamptz not null check(phase2 < phase3)
 );
 
 create table if not exists images
