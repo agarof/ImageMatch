@@ -1,10 +1,29 @@
 version: '3'
 
 services:
+  backend:
+    build:
+      context: ./
+      dockerfile: ./backend/Dockerfile
+    depends_on:
+      - db
+    ports:
+      - '6060:6060'
+    networks:
+      - db-network
+    environment:
+      DB_PORT: 5432
+      DB_HOST: db
+      DB_NAME: db
+      DB_USER: postgre
+      DB_PASS: postgre
+
   db:
     image: 'postgres:latest'
     ports:
       - '6300:5432'
+    networks:
+      - db-network
     environment:
       POSTGRES_USER: postgre
       POSTGRES_PASSWORD: postgre
@@ -12,6 +31,9 @@ services:
     volumes:
         - ./db/schema.sql://docker-entrypoint-initdb.d/schema.sql
         - db-data:/var/lib/postgresql/data
+
+networks:
+  db-network:
 
 volumes:
     db-data:
