@@ -12,6 +12,7 @@ where
 
 pub enum Code {
     OK,
+    Created,
 }
 
 pub fn success<T>(body: T) -> Success<T>
@@ -58,6 +59,7 @@ impl From<Code> for StatusCode {
     fn from(code: Code) -> Self {
         match code {
             Code::OK => StatusCode::OK,
+            Code::Created => StatusCode::CREATED,
         }
     }
 }
