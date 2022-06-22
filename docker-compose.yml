@@ -18,6 +18,23 @@ services:
       DB_USER: postgre
       DB_PASS: postgre
 
+  image-host:
+    build:
+      context: ./
+      dockerfile: ./image-host/Dockerfile
+    depends_on:
+      - db
+    ports:
+      - '3030:3030'
+    networks:
+      - db-network
+    environment:
+      DB_PORT: 5432
+      DB_HOST: db
+      DB_NAME: db
+      DB_USER: postgre
+      DB_PASS: postgre
+
   db:
     image: 'postgres:latest'
     ports:

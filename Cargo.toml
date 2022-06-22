@@ -1,5 +1,5 @@
 [workspace]
-members = ["db", "backend"]
+members = ["db", "backend", "image-host"]
 
 [profile.release-lto]
 inherits = "release"
