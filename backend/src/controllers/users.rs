@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 use db::{
     result::Error,
     tokens,
-    users::{self, Candidate},
+    users::{self, Summary},
     Pool,
 };
+use time::OffsetDateTime;
 
 use crate::{
     extractors::auth::{AdminAuth, Auth},
@@ -22,7 +23,7 @@ pub struct CredentialModel {
 
 pub async fn create(data: CredentialModel, db: Pool) -> EmptyResponse {
     match users::create(&data.email, &data.password, &db).await {
-        Ok(_) => success(()).into(),
+        Ok(_) => success(()).with_status(success::Code::Created).into(),
         Err(err) => {
             error!("{err:?}");
 
@@ -55,19 +56,29 @@ pub async fn confirm(id: users::Id, db: Pool, _: AdminAuth) -> EmptyResponse {
 #[derive(Serialize)]
 pub struct TokenResponse {
     token: String,
+    #[serde(with = "time::serde::rfc3339")]
+    expiration: OffsetDateTime,
+    admin: bool,
 }
 
 pub async fn login(data: CredentialModel, db: Pool) -> Response<TokenResponse> {
     let dbref = &db;
 
     let result = users::find_by_credentials(&data.email, &data.password, dbref)
-        .and_then(|id| async move { tokens::create(id, dbref).await })
+        .and_then(|(id, admin)| async move {
+            tokens::create(id, dbref)
+                .await
+                .map(|(token, expiration)| (token.0.to_string(), expiration, admin))
+        })
         .await;
 
     match result {
-        Ok(token) => success(TokenResponse {
-            token: token.0.to_string(),
+        Ok((token, expiration, admin)) => success(TokenResponse {
+            token,
+            expiration,
+            admin,
         })
+        .with_status(success::Code::Created)
         .into(),
         Err(Error::InvalidCredentials) => error()
             .with_status(error::Code::Forbidden)
@@ -103,7 +114,7 @@ pub async fn candidates(db: Pool, _: AdminAuth) -> Response<Vec<CandidateModel>>
         Ok(candidates) => success(
             candidates
                 .into_iter()
-                .map(|Candidate { id, email }| CandidateModel { id: id.0, email })
+                .map(|Summary { id, email }| CandidateModel { id: id.0, email })
                 .collect(),
         )
         .into(),
