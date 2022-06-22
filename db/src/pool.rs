@@ -8,7 +8,7 @@ pub async fn connect(
     user: &str,
     password: &str,
     host: &str,
-    port: u32,
+    port: i16,
     database: &str,
 ) -> DbResult<Pool> {
     let url = format!("postgresql://{user}:{password}@{host}:{port}/{database}");
