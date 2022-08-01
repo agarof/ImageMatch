@@ -1,3 +1,4 @@
+pub mod filters;
 pub mod images;
 pub mod images_associations;
 pub mod pool;
