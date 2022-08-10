@@ -1,9 +1,6 @@
 use sqlx::{postgres::PgRow, types::time::OffsetDateTime, PgExecutor, Row};
 
-use crate::{
-    filters::DateFilter,
-    result::{code_to_error, codes, DbResult, Error},
-};
+use crate::result::{code_to_error, codes, DbResult, Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Id(pub i32);
@@ -56,17 +53,17 @@ where
         .map_err(code_to_error(&[(codes::CHECK, |_| Error::InvalidDates)]))
 }
 
-pub async fn list<'a, E>(
-    phase1: DateFilter,
-    phase2: DateFilter,
-    phase3: DateFilter,
-    db: E,
-) -> DbResult<Vec<Session>>
-where
-    E: PgExecutor<'a>,
-{
-    sqlx::query_as(LIST_QUERY)
-        .fetch_all(db)
-        .await
-        .map_err(Error::Sqlx)
-}
+// pub async fn list<'a, E>(
+//     phase1: DateFilter,
+//     phase2: DateFilter,
+//     phase3: DateFilter,
+//     db: E,
+// ) -> DbResult<Vec<Session>>
+// where
+//     E: PgExecutor<'a>,
+// {
+//     sqlx::query_as(LIST_QUERY)
+//         .fetch_all(db)
+//         .await
+//         .map_err(Error::Sqlx)
+// }
