@@ -9,8 +9,14 @@ mod sessions;
 mod users;
 
 pub fn routes(pool: db::Pool) -> impl Filter<Extract = impl warp::Reply> + Clone {
+    let cors = warp::cors()
+        .allow_any_origin()
+        .allow_headers(["content-type", "authorization"])
+        .allow_methods(["POST"]);
+
     users::router(pool.clone())
         .or(sessions::router(pool))
+        .with(cors)
         .recover(handle_rejection)
 }
 

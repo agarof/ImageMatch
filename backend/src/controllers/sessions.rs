@@ -1,9 +1,12 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 use db::{images, images_associations, result::Error, sessions, Pool};
 
-use crate::response::{error, success, EmptyResponse};
+use crate::{
+    extractors::auth::{AdminAuth, Auth},
+    response::{error, success, EmptyResponse, Response},
+};
 
 #[derive(Deserialize)]
 pub struct CreateModel {
@@ -16,7 +19,7 @@ pub struct CreateModel {
     phase3: OffsetDateTime,
 }
 
-pub async fn create(params: CreateModel, db: Pool) -> EmptyResponse {
+pub async fn create(params: CreateModel, db: Pool, _: AdminAuth) -> EmptyResponse {
     let result = sessions::create(
         &params.name,
         params.phase1,
@@ -44,7 +47,7 @@ pub struct ImagesModel {
     session: i32,
 }
 
-pub async fn images(params: ImagesModel, db: Pool) -> EmptyResponse {
+pub async fn images(params: ImagesModel, db: Pool, _: AdminAuth) -> EmptyResponse {
     let result =
         images_associations::create(images::Id(params.image), sessions::Id(params.session), &db)
             .await;
@@ -62,4 +65,16 @@ pub async fn images(params: ImagesModel, db: Pool) -> EmptyResponse {
         }
         .into(),
     }
+}
+
+#[derive(Serialize)]
+pub struct SessionSummary {
+    id: i32,
+    name: String,
+    #[serde(with = "time::serde::rfc3339")]
+    phase2: OffsetDateTime,
+}
+
+pub async fn list(db: Pool, _: Auth) -> Response<Vec<SessionSummary>> {
+    todo!()
 }

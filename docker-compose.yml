@@ -35,6 +35,18 @@ services:
       DB_USER: postgre
       DB_PASS: postgre
 
+  frontend:
+    build:
+      context: frontend
+      args:
+        - VITE_BACKEND_HOST=http://localhost:6060
+        - VITE_IMAGE_HOST=http://localhost:3030
+    depends_on:
+      - backend
+      - image-host
+    ports:
+      - 80:80
+
   db:
     image: 'postgres:latest'
     ports:
