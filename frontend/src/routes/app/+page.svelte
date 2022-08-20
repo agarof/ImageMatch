@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { logout } from '$lib/requests';
 	import { token } from '$lib/stores';
-	import Sessions from './sessions.svelte';
+	import Sessions from '../sessions.svelte';
 
 	let tab: 0 | 1 = 0;
 
